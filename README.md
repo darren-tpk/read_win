@@ -23,15 +23,17 @@ Installation
 It is recommended to install ``read_win`` within a conda environment.
 
 Create a new environment:
-::
-    conda create -n my_env -c conda-forge python=3 obspy pandas
+```
+conda create -n my_env -c conda-forge python=3 obspy pandas
+```
 
 Activate the environment and install:
-::
-    conda activate my_env
-    git clone https://github.com/darren-tpk/read_win
-    cd read_win
-    pip install -e .
+```
+conda activate my_env
+git clone https://github.com/darren-tpk/read_win
+cd read_win
+pip install -e .
+```
 
 The package is installed in editable mode, allowing updates via ``git_pull``
 
@@ -46,12 +48,14 @@ References
 ----------
 
 Nakagawa, S. and Kato, A. — Report on ObsPy WIN-format issues:
+
 https://www.eri.u-tokyo.ac.jp/GIHOU/archive/26_031-036.pdf
 https://www.eri.u-tokyo.ac.jp/people/nakagawa/win/
 
 Ikeda, W. — Early Python conversion efforts (shared via Mie Ichihara
 
 Maeda, Y. — WIN format documentation:
+
 https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/include/win/data_format.html
 https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/win_data/index.html
 https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/win_data/wintosac.html
