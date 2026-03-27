@@ -48,14 +48,12 @@ References
 ----------
 
 Nakagawa, S. and Kato, A. — Report on ObsPy WIN-format issues:
-
 https://www.eri.u-tokyo.ac.jp/GIHOU/archive/26_031-036.pdf
 https://www.eri.u-tokyo.ac.jp/people/nakagawa/win/
 
 Ikeda, W. — Early Python conversion efforts (shared via Mie Ichihara
 
 Maeda, Y. — WIN format documentation:
-
 https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/include/win/data_format.html
 https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/win_data/index.html
 https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/win_data/wintosac.html
