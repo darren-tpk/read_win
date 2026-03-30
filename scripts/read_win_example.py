@@ -1,13 +1,13 @@
 from obspy import UTCDateTime
 from read_win import read_win
 
-starttime = UTCDateTime(2026, 3, 5, 10)  # UTC
-endtime = UTCDateTime(2026, 3, 5, 20)  # UTC
-file_directory = "./sample_data/"  # for glob
+starttime = UTCDateTime(2026, 3, 5, 5)  # UTC
+endtime = UTCDateTime(2026, 3, 5, 8)  # UTC
+file_directory = "./read_win/sample_data"  # for glob
 file_pattern = "%y%m%d%H"  # UTCDateTime strftime input
 file_interval = "hour"  # "minute", "hour", or "day"
 fill_value = None  # for stream.merge
-channel_table_path = "./sample_data/channels.tbl"
+channel_table_path = "./read_win/sample_data/channels.tbl"
 verbose = False
 
 stream = read_win(starttime,
