@@ -1,5 +1,5 @@
 import os
-import warnings
+import time
 import numpy as np
 import pandas as pd
 import struct
@@ -20,9 +20,9 @@ class OneSecUnit(object):
     :param unit_bytes (bytes or array): Raw bytes for a single 1-second unit
 
     :ivar cursor_position (int): Current reading position within the unit (in bytes)
-    :ivar size (int): Total size of the unit in bytes
+    :ivar size_bytes (int): Total size of the unit in bytes
     :ivar starttime (:class:`~obspy.core.utcdatetime.UTCDateTime`): Start time of the unit
-    :ivar stream (:class:`~obspy.core.stream.Stream`): Stream containing data from the unit
+    :ivar data (:class:`numpy.ndarray`): Array containing decoded waveform samples for the unit
     """
 
     def __init__(self, unit_bytes):
@@ -39,12 +39,12 @@ class OneSecUnit(object):
         # Initial cursor reading position. Header always takes 10 bytes, then start of first channel block
         self.cursor_position = 10
 
-        # Initialize streams which will be populated with Traces as they are read
-        self.stream = Stream()
+        # Initialize placeholder for data
+        self.data = {}
 
         # Keep reading channel blocks until the end of the unit
-        while self.cursor_position < self.size:
-            self._read_channel_block(unit_bytes[self.cursor_position:self.size])
+        while self.cursor_position < self.size_bytes:
+            self._read_channel_block(unit_bytes[self.cursor_position:self.size_bytes])
 
     def _read_header(self, unit_bytes):
         """
@@ -57,7 +57,7 @@ class OneSecUnit(object):
         :param unit_bytes (bytes or array): Raw bytes from the WIN file
         :return: None
         """
-        self.size = struct.unpack(">I", unit_bytes[:4])[0]  # First 4 bytes = total unit size in bytes
+        self.size_bytes = struct.unpack(">I", unit_bytes[:4])[0]  # First 4 bytes = total unit size in bytes
         self.starttime = _get_starttime(unit_bytes[4:10])  # Next 6 bytes are start time
 
     def _read_channel_block(self, channel_bytes):
@@ -73,48 +73,26 @@ class OneSecUnit(object):
         :return: None
         """
 
-        # First byte of channel block is channel ID
-        ch_id = struct.unpack(">H", channel_bytes[:2])[0]
+        # First byte of channel block is sensor ID
+        sensor_id = f"{struct.unpack('>H', channel_bytes[:2])[0]:04x}"
 
         # Next two bytes are slightly tricky, first 0.5 byte is sample size in bytes then next 1.5 bytes is sampling_rate
-        datasize_fs = struct.unpack(">H", channel_bytes[2:4])[0]
+        data_properties_bytes = struct.unpack(">H", channel_bytes[2:4])[0]
+        datasize_code = data_properties_bytes >> 12  # Next 0.5 byte (i.e. 4 bits) is size of each data sample in bytes. If 0, then datasize is actually 0.5 byte
+        datasize = 0.5 if datasize_code == 0 else datasize_code # If datasize is 0, then actual datasize is 0.5 byte
+        sampling_rate = data_properties_bytes & 4095  # Next 1.5 bytes (i.e. 12 bits) is sampling rate in Hz. Note that 4095 = 0xFFF
 
-        datasize_code = datasize_fs >> 12  # Next 0.5 byte (i.e. 4 bits) is size of each data sample in bytes. If 0, then datasize is actually 0.5 byte
-        sampling_rate = datasize_fs & 4095  # Next 1.5 bytes (i.e. 12 bits) is sampling rate in Hz. Note that 4095 = 0xFFF
-
-        # If datasize is 0, then actual datasize is 0.5 byte
-        if datasize_code == 0:
-            datasize = 0.5
-        else:
-            datasize = datasize_code
-
-        # Determine SEED channel code based on sampling rate
-        if 10 <= sampling_rate < 80:
-            channel_code = 'BDF'
-        elif 80 <= sampling_rate < 250:
-            channel_code = 'HDF'
-        elif 250 <= sampling_rate < 1000:
-            channel_code = 'CDF'
-        else:
-            warnings.warn('Sampling rate is < 10 or >= 1000 Hz!')
-
-        # Prepare metadata for trace (note that more metadata, e.g. network, will be added later)
-        stats = Stats({
-            "sampling_rate": sampling_rate,
-            "npts": sampling_rate,
-            "location": f'{ch_id:04d}',
-            "channel": channel_code,
-            "starttime": self.starttime,
-        })
+        # Initialize data entry if not present
+        if sensor_id not in self.data:
+            self.data[sensor_id] = {"blocks": []}
 
         # First data sample, always 4 bytes, in absolute units
-        y_0 = uint2int(struct.unpack(">I", channel_bytes[4:8])[0], 4)
+        first_sample_value = uint2int(struct.unpack(">I", channel_bytes[4:8])[0], 4)
 
         # Format strings controls how bytes are unpacked. Correct letter will be selected based on datasize
         format_string = 'BBHBI'
 
         # Read all remaining bytes at once, but for 0.5 and 3 byte sample size, things are slightly trickier.
-
         if datasize_code == 0:  # for 0.5 byte size, data samples are 4-bit but we read 8-bit, so each byte read actually contains two data samples
             N_samples_to_read = (sampling_rate - 1) // 2
             N_bytes_to_read = (sampling_rate - 1) // 2
@@ -149,15 +127,17 @@ class OneSecUnit(object):
         else:
             N_samples_to_read = sampling_rate - 1  # number of data samples remaining to be read
             N_bytes_to_read = N_samples_to_read * datasize  # number of actual bytes to be read
-            diff_udata = np.array(struct.unpack('>' + format_string[datasize_code] * N_samples_to_read, channel_bytes[
-                                                                                                        8:8 + N_bytes_to_read]))  # reading all remaining data at once. Note that these are differential, unsigned integers
+            diff_udata = np.array(struct.unpack('>' + format_string[datasize_code] * N_samples_to_read, channel_bytes[8:8 + N_bytes_to_read]))  # reading all remaining data at once. Note that these are differential, unsigned integers
 
         # Convert from unsigned to signed integers, still differential (i.e. difference to previous value rather than absolute value)
         diff_data = to_signed_array(diff_udata, datasize)
 
-        # Convert to absolute values and add to unit Stream
+        # Convert to absolute units
+        data_segment = np.cumsum(np.insert(diff_data, 0, first_sample_value)).astype(float)
+
+        # Append data segment
         # Note that the data is still in integers, and not in physical units yet (will be converted all at once, after all 1s units are loaded)
-        self.stream += Trace(data=np.cumsum(np.insert(diff_data, 0, y_0)).astype(float), header=stats)
+        self.data[sensor_id]["blocks"].append({"starttime": self.starttime,"sampling_rate": sampling_rate, "data": data_segment})
 
         # Update cursor position to end of this channel block
         self.cursor_position += int(8 + (sampling_rate - 1) * datasize)
@@ -169,46 +149,19 @@ class OneSecUnit(object):
 
 def _get_starttime(date_bytes):
     """
-    Extract the start time from a 1-second unit header.
+    Extract and decode the start time from a 1-second unit header.
+
+    Each input integer represents a time component encoded as two packed
+    decimal digits, where the upper 4 bits correspond to the tens digit
+    and the lower 4 bits correspond to the units digit (where 0xF = 15).
 
     :param date_bytes (array): The 6 bytes encoding the date in the header
     :return: :class:`~obspy.core.utcdatetime.UTCDateTime`
     """
-    starttime = [_dateint2num(i) for i in
-                 date_bytes]  # Careful, when using list comprehension, each item b from all_bytes will actually be an integer rather than a byte
-
-    if starttime[0] <= 80:
-        starttime[0] += 2000  # add 2000 to years between 2000 and 2080
-    else:
-        starttime[0] += 1900  # add 1900 to years between 1981 and 1999
+    starttime = [(b >> 4) * 10 + (b & 0x0F) for b in date_bytes]  # Careful, when using list comprehension, each item b from all_bytes will actually be an integer rather than a byte
+    starttime[0] += 2000 if starttime[0] <= 80 else 1900
 
     return UTCDateTime(*starttime)
-
-
-def _dateint2num(date_int):
-    """
-    Decode an integer into its corresponding date value.
-    The input integer is interpreted as two packed decimal digits:
-    the upper 4 bits represent the decade digit, and the lower
-    4 bits represent the unit digit (where 0xF = 15).
-
-    :param date_int (int): Integer to be decoded
-    :return: int
-    """
-    return (date_int >> 4) * 10 + (date_int & 15)
-
-
-def _datebyte2num(byte):
-    """
-    Decode a byte into its corresponding date value.
-    The input byte is interpreted as two packed decimal digits:
-    the upper 4 bits represent the decade digit, and the lower
-    4 bits represent the unit digit.
-
-    :param byte (bytes): Single byte to be decoded
-    :return: int
-    """
-    return (struct.unpack("B", byte)[0] >> 4) * 10 + (struct.unpack("B", byte)[0] & 15)
 
 
 def read_channel_table(channel_table_path):
@@ -223,8 +176,6 @@ def read_channel_table(channel_table_path):
     if not Path(channel_table_path).exists():
         raise FileNotFoundError("Channel table path does not exist.")
 
-    print(f'Loading channel table from {channel_table_path}...', end='')
-
     COLUMNS = columns = ["location", "flag", "delay_time", "station", "channel",
                          "amplitude_reduction", "digitizing_bits", "sensitivity",
                          "unit", "natural_period", "damping_constant", "amplification_factor",
@@ -237,8 +188,6 @@ def read_channel_table(channel_table_path):
     channel_table["amplitude_correction"] = (channel_table["digitization_magnitude"] *
                                              (10 ** (channel_table["amplification_factor"] / 20)) /
                                              channel_table["sensitivity"])
-
-    print('   Done!')
 
     return channel_table
 
@@ -271,7 +220,6 @@ def to_signed_array(uarray, byte_size):
 def uint2int(unsigned, byte_size):
     """
     Convert an unsigned integer to its signed representation for a given byte size.
-
     Given an unsigned integer in the range [0, 2^n_bits - 1], return the corresponding
     signed integer. For example, for byte_size = 2 (16-bit), unsigned integers range
     from 0 to 65535, and the corresponding signed integers range from -32767 to 32768.
@@ -287,10 +235,8 @@ def uint2int(unsigned, byte_size):
     if (unsigned < 0) | (unsigned >= 2 ** (n_bits)):
         raise ValueError(
             f'Unsigned integer {unsigned} outside of range for {n_bits}-bit integers. Values should be between 0 and {2 ** (n_bits) - 1}.')
-
     elif unsigned <= 2 ** (n_bits - 1):
         signed = unsigned
-
     else:
         signed = unsigned - 2 ** n_bits
 
@@ -315,38 +261,93 @@ def get_opposite(number, byte_size):
     return complementary
 
 
-def _read_single_win_file(file_path):
+def _read_single_win_file(file_path, verbose=True):
     """
     Read a single WIN file into an ObsPy Stream object (not merged or trimmed)
 
     :param file_path (str): Path to WIN file
+    :param verbose (bool): If `False`, all print statements will be blocked. Default is `True`.
     :return: :class:`~obspy.core.stream.Stream`
     """
 
+    # Use print for logging if verbose; otherwise use a no-op function
+    log = print if verbose else lambda *args, **kwargs: None
+
     # Print statement to let user know something is happening!
-    print(f'.......................Reading WIN file {file_path}...', end='')
+    log(f'.......................Reading WIN file {file_path}...', end='')
 
     # Read all bytes from winfile into a variable
     with open(file_path, "rb") as f:
         all_bytes = f.read()
 
-    # Initialize Stream to load data into
-    stream = Stream()
+    # Initialize dictionary to accumulate data across all 1 s units
+    all_data = {}
 
     # Position of cursor as reading through all 1 s units
     read_position = 0
 
-    # Keep reading 1s units until the end of the file
+    # Keep reading 1 s units until the end of the file
     while read_position < len(all_bytes):
-        unit = OneSecUnit(all_bytes[read_position:])  # read one second unit
+        unit = OneSecUnit(all_bytes[read_position:])
 
-        stream += unit.stream  # add data to stream
+        for sensor_id, sensor_info in unit.data.items():
+            if sensor_id not in all_data:
+                all_data[sensor_id] = {"blocks": []}
 
-        read_position += unit.size  # advance cursor position to start of next unit
+            all_data[sensor_id]["blocks"].extend(sensor_info["blocks"])
 
-    print(' Done !')
+        read_position += unit.size_bytes
 
-    return stream
+    # Initialize assembled data for WIN file
+    assembled_data = {}
+
+    for sensor_id, sensor_dict in all_data.items():
+        blocks = sensor_dict["blocks"]
+
+        # Sort blocks by starttime
+        blocks = sorted(blocks, key=lambda b: b["starttime"])
+
+        # Determine expected sampling rate (mode)
+        sampling_rates = [b["sampling_rate"] for b in blocks]
+        expected_sampling_rate = max(set(sampling_rates), key=sampling_rates.count)
+
+        # Determine master start and end times
+        master_starttime = blocks[0]["starttime"]
+        master_endtime = max(b["starttime"] + len(b["data"]) / expected_sampling_rate for b in blocks)
+
+        # Allocate master array
+        total_samples = int(round((master_endtime - master_starttime) * expected_sampling_rate))
+        master_data = np.full(total_samples, np.nan, dtype=float)
+
+        # Fill data
+        for b in blocks:
+
+            # Check sampling rate
+            if b["sampling_rate"] != expected_sampling_rate:
+                warnings.warn(f"Skipping block for sensor {sensor_id} at {b['starttime']} "f"due to sampling rate mismatch ({b['sampling_rate']} != {expected_sampling_rate})")
+                continue
+
+            # Check number of samples
+            if len(b["data"]) != expected_sampling_rate:
+                warnings.warn(f"Skipping block for sensor {sensor_id} at {b['starttime']} "f"due to unexpected sample count ({len(b['data'])} != {expected_sampling_rate})")
+                continue
+
+            # Determine indices and check for overlap
+            start_index = int(round((b["starttime"] - master_starttime) * expected_sampling_rate))
+            end_index = start_index + expected_sampling_rate
+            existing = master_data[start_index:end_index]
+            if np.any(~np.isnan(existing)):
+                warnings.warn(f"Overlap detected for sensor {sensor_id} at {b['starttime']} — existing data will be overwritten")
+
+            # Write data
+            master_data[start_index:end_index] = b["data"]
+
+        assembled_data[sensor_id] = {"starttime": master_starttime, "sampling_rate": expected_sampling_rate, "data": master_data}
+
+    log(' Done !')
+
+    return assembled_data
+
 
 def _safe_merge(stream, fill_value):
     """
@@ -374,61 +375,67 @@ def _safe_merge(stream, fill_value):
                 trace.stats.sampling_rate = np.round(trace.stats.sampling_rate)
         stream.merge(fill_value=fill_value)  # Try merging with rounded sampling rates
 
-def read_win(file_paths, channel_table_path, fill_value=None):
+def read_win_paths(file_paths, channel_table_path, fill_value=None, verbose=True):
     """
-    Read WIN file(s) into an ObsPy Stream.
+    Read WIN filepaths(s) into an ObsPy Stream.
 
     :param file_paths (str or list): Path or list of paths to WIN file(s)
     :param channel_table_path (str): Path to channel table file
     :param fill_value (float, optional): Fill value used in stream.merge() to handle gaps
+    :param verbose (bool): If `False`, all print statements will be blocked. Default is `True`.
     :return: :class:`~obspy.core.stream.Stream`
     """
 
-    # Check input file paths
+    # Use print for logging if verbose; otherwise use a no-op function
+    log = print if verbose else lambda *args, **kwargs: None
+    run_clock = time.time()
+
+    # Load channel table
+    log(f'Loading channel table...')
+    channel_table = read_channel_table(channel_table_path)
+
+    # Ensure file paths is a list
+    if isinstance(file_paths, str):
+        file_paths = [file_paths]
+    # Check emptiness
     if len(file_paths) == 0:
         raise FileNotFoundError('Input list of files is empty.')
-    elif type(file_paths) is str:  # if single path given as str, turn it into a list
-        file_paths = [file_paths]
-    print(f'Beginning conversion of {len(file_paths)} file(s) to Stream...')
+    log(f'Reading {len(file_paths)} file(s) to Stream...')
 
     # Initialize Stream to load data into
     stream = Stream()
 
     # Load each file in the list one by one
-    for win_file in file_paths:
-        stream += _read_single_win_file(win_file)
-
-    # print('All files successfully read and streams merged. Applying amplitude correction from channel table.')
+    for file_path in file_paths:
+        assembled_data = _read_single_win_file(file_path, verbose)
+        for sensor_id, sensor_data in assembled_data.items():
+            row = channel_table[channel_table["location"] == sensor_id].iloc[0]
+            network, station = row["station"].split(".")
+            stats = Stats({
+                "network": network,
+                "station": station,
+                "channel": row["channel"],  # adjust if column name differs
+                "location": sensor_id,
+                "sampling_rate": sensor_data["sampling_rate"],
+                "starttime": sensor_data["starttime"],
+                "npts": len(sensor_data["data"]),
+            })
+            trace = Trace(data=sensor_data["data"] * row["amplitude_correction"], header=stats)
+            stream.append(trace)
 
     # Could also merge only once here... Seems slightly faster
-    print('-----All files successfully read. Merging all streams...')
+    log('-----All files successfully read. Merging all streams...')
     _safe_merge(stream, fill_value)
-    print('-----Streams merged. Applying amplitude correction from channel table.')
+    log('-----Streams merged.')
 
-    # Load channel table
-    channel_table = read_channel_table(channel_table_path)
-
-    # Correct amplitude with values from channel table and add metadata
-    for trace in stream:
-        trace.stats.network = network
-        trace.stats.station = station
-        trace.data *= \
-        channel_table.loc[channel_table['location'] == str(trace.stats.location), 'amplitude_correction'].values[0]
-
-    print('...finished conversion process to Stream object!\n')
+    log('Returning Stream object. Time elapsed: %s seconds.\n' % (time.time() - run_clock))
 
     return stream
 
 
-def read_win_dir(starttime,
-                 endtime,
-                 file_directory,
-                 file_pattern,
-                 file_interval,
-                 fill_value,
-                 channel_table_path):
+def read_win(starttime, endtime, file_directory, file_pattern, file_interval, fill_value, channel_table_path, verbose=True):
     """
-    Read WIN format data from a directory or archive.
+    Read WIN format data from a directory or archive, and trim
 
     :param starttime (:class:`~obspy.core.utcdatetime.UTCDateTime`): Start time of desired data
     :param endtime (:class:`~obspy.core.utcdatetime.UTCDateTime`): End time of desired data
@@ -437,6 +444,7 @@ def read_win_dir(starttime,
     :param file_interval (str): WIN data file interval ("minute", "hour", or "day")
     :param fill_value (float): Value passed to stream.merge() when combining data from separate WIN files
     :param channel_table_path (str): Path to channel table file
+    :param verbose (bool): If `False`, all print statements will be blocked. Default is `True`.
     :return: :class:`~obspy.core.stream.Stream`
     """
 
@@ -458,7 +466,7 @@ def read_win_dir(starttime,
         first_file_time = UTCDateTime(starttime.year, starttime.month, starttime.day)
         end_file_time = UTCDateTime(endtime.year, endtime.month, endtime.day)
     if end_file_time == endtime:
-        file_times = np.arange(first_file_time, end_file_time + file_interval_time, file_interval_time)
+        file_times = np.arange(first_file_time, end_file_time, file_interval_time)
     else:
         file_times = np.arange(first_file_time, end_file_time + file_interval_time, file_interval_time)
 
@@ -470,7 +478,7 @@ def read_win_dir(starttime,
         file_paths.extend(matching_files)
 
     # Read WIN and trim
-    stream = read_win(file_paths, channel_table_path, fill_value=fill_value)
+    stream = read_win_paths(file_paths, channel_table_path, fill_value=fill_value, verbose=verbose)
     stream = stream.trim(starttime, endtime)
 
     return stream
@@ -478,18 +486,20 @@ def read_win_dir(starttime,
 
 if __name__ == '__main__':
 
-    starttime = UTCDateTime(2026, 3, 5, 4, 30)  # UTC
-    endtime = UTCDateTime(2026, 3, 5, 14, 15)  # UTC
-    file_directory = "./kurokami*/*/"  # for glob
+    starttime = UTCDateTime(2026, 3, 5, 10)  # UTC
+    endtime = UTCDateTime(2026, 3, 5, 20)  # UTC
+    file_directory = "./kurokami123/*/"  # for glob
     file_pattern = "%y%m%d%H"  # UTCDateTime strftime input
     file_interval = "hour"  # "minute", "hour", or "day"
     fill_value = None  # for stream.merge
     channel_table_path = "./channels.tbl"
+    verbose = True
 
-    stream = read_win_dir(starttime,
-                          endtime,
-                          file_directory,
-                          file_pattern,
-                          file_interval,
-                          fill_value,
-                          channel_table_path)
+    stream = read_win(starttime,
+                      endtime,
+                      file_directory,
+                      file_pattern,
+                      file_interval,
+                      fill_value,
+                      channel_table_path,
+                      verbose)
