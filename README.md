@@ -24,7 +24,7 @@ It is recommended to install ``read_win`` within a conda environment.
 
 Create a new environment:
 ```
-conda create -n my_env -c conda-forge python=3 obspy pandas
+conda create -n my_env -c conda-forge python=3 obspy pandas ipython
 ```
 
 Activate the environment and install:
