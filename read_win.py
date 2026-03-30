@@ -12,6 +12,7 @@
 # References:
 # https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/include/win/data_format.html
 
+import time
 import os
 import glob
 import warnings
@@ -355,6 +356,8 @@ def read_win(list_file_paths, channel_table_path, network='SA', station='KUR', f
         stream (obs.Stream): Stream containing infrasound data
     """
 
+    run_clock = time.time()
+
     if len(list_file_paths) == 0:
         raise FileNotFoundError('Input list of files is empty.')
     
@@ -388,17 +391,17 @@ def read_win(list_file_paths, channel_table_path, network='SA', station='KUR', f
         tr.stats.station = station
         tr.data *= channel_table.loc[ channel_table['location'] == str(tr.stats.location), 'amplitude_correction' ].values[0]
 
-    print('...finished conversion process to Stream object!\n')
+    print('...finished conversion process to Stream object! Time elapsed: %s seconds.\n' % (time.time() - run_clock))
 
     return stream
 
 
 if __name__ == '__main__':
 
-    WIN_FILE_PATH = '../Infrasound/raw/K2C/2026_03/05/*' # either a single file path or can glob to a pattern
+    WIN_FILE_PATH = './kurokami123/05/2603051*' # either a single file path or can glob to a pattern
     CHANNEL_TABLE_PATH = './channels.tbl'
 
-    list_files = glob.glob(WIN_FILE_PATH)
-    list_files.sort() # sorting files not actually needed
+    list_file_paths = glob.glob(WIN_FILE_PATH)
+    list_file_paths.sort() # sorting files not actually needed
 
-    st = read_win(list_files, CHANNEL_TABLE_PATH, network='SA', station='KUR', fill_value=None)
+    st = read_win(list_file_paths, CHANNEL_TABLE_PATH, network='SA', station='KUR', fill_value=None)
