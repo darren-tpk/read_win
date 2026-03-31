@@ -63,6 +63,6 @@ Ikeda, W. — Early Python conversion efforts (shared via Ichihara, M.)
 Authors and Contributors
 ------------------------
 
-| Darren Tan
-| Gilles Seropian
+Darren Tan
+Gilles Seropian
 
