@@ -30,7 +30,7 @@ conda create -n my_env -c conda-forge python=3 obspy pandas ipython
 Activate the environment and install:
 ```
 conda activate my_env
-git clone https://github.com/darren-tpk/read_win
+git clone -b optimize https://github.com/darren-tpk/read_win
 cd read_win
 pip install -e .
 ```
