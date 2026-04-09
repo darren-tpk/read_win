@@ -51,14 +51,12 @@ Nakagawa, S. and Kato, A. — Report on ObsPy WIN-format issues:<br>
 https://www.eri.u-tokyo.ac.jp/GIHOU/archive/26_031-036.pdf<br>
 https://www.eri.u-tokyo.ac.jp/people/nakagawa/win/
 
-Ikeda, W. — Early Python conversion efforts (shared via Mie Ichihara)
-
 Maeda, Y. — WIN format documentation:<br>
 https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/include/win/data_format.html<br>
 https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/win_data/index.html<br>
 https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/win_data/wintosac.html
 
-Ikeda, W. — Early Python conversion efforts (shared via Ichihara, M.)
+Ikeda, W. and Ozaki, T. — Earlier Python conversion efforts (shared via Ichihara, M.)
 
 Authors and Contributors
 ------------------------
