@@ -160,7 +160,7 @@ def _read_single_win_file(file_path, verbose=True):
     log = print if verbose else lambda *args, **kwargs: None
 
     # Print statement to let user know something is happening!
-    log(f'.......................Reading WIN file {file_path}...', end='')
+    log(f'.......................Reading WIN file {file_path} ...', end='\n')
 
     # Read all bytes from winfile into a variable
     with open(file_path, "rb") as f:
