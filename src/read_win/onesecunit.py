@@ -43,7 +43,7 @@ class OneSecUnit(object):
         # Sensor ID and sampling rate is known, but bytes length is mismatched
         if len(unit_bytes) < self.size_bytes:
             warnings.formatwarning = lambda msg, cat, fname, lineno, line=None: f"{cat.__name__}: {msg}\n"
-            warnings.warn("Mismatch in number of bytes between unit header and channel block (%d/%d bytes). Falling back to sequential reading." %
+            warnings.warn("\nMismatch in number of bytes between unit header and channel block (%d/%d bytes). Falling back to sequential reading." %
                           (len(unit_bytes), self.size_bytes), RuntimeWarning)
             self.read_state = "truncated"
 
@@ -55,7 +55,7 @@ class OneSecUnit(object):
 
             # Insufficient bytes to derive sensor ID and sampling rate
             if len(channel_bytes) <= 4:
-                warnings.warn("Insufficient bytes to derive sensor ID and sampling rate. Breaking.", RuntimeWarning)
+                warnings.warn("Insufficient bytes to derive sensor ID and sampling rate. Breaking.\n", RuntimeWarning)
                 self.read_state = "fatal"
                 break
 
