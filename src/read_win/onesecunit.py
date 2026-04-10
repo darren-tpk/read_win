@@ -42,7 +42,6 @@ class OneSecUnit(object):
 
         # Sensor ID and sampling rate is known, but bytes length is mismatched
         if len(unit_bytes) < self.size_bytes:
-            print("\n")
             warnings.formatwarning = lambda msg, cat, fname, lineno, line=None: f"{cat.__name__}: {msg}\n"
             warnings.warn("Mismatch in number of bytes between unit header and channel block (%d/%d bytes). Falling back to sequential reading." %
                           (len(unit_bytes), self.size_bytes), RuntimeWarning)

@@ -160,7 +160,7 @@ def _read_single_win_file(file_path, verbose=True):
     log = print if verbose else lambda *args, **kwargs: None
 
     # Print statement to let user know something is happening!
-    log(f'.......................Reading WIN file {file_path} ...', end='')
+    log("...................... Reading WIN file {file_path} ...")
 
     # Read all bytes from winfile into a variable
     with open(file_path, "rb") as f:
@@ -229,7 +229,5 @@ def _read_single_win_file(file_path, verbose=True):
             master_data[start_index:end_index] = b["data"]
 
         assembled_data[sensor_id] = {"starttime": master_starttime, "sampling_rate": expected_sampling_rate, "data": master_data}
-
-    log(' Done !')
 
     return assembled_data
