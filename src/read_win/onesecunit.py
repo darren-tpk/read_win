@@ -37,26 +37,27 @@ class OneSecUnit(object):
         # Initialize placeholder for data
         self.data = {}
 
+        # Conduct a check to see if the length of unit bytes matches header info
+        self.read_state = "healthy"
+
+        # Sensor ID and sampling rate is known, but bytes length is mismatched
+        if len(unit_bytes) <= self.size_bytes:
+            warnings.formatwarning = lambda msg, cat, fname, lineno, line=None: f"{cat.__name__}: {msg}\n"
+            warnings.warn("Mismatch in number of bytes between unit header and channel block (%d/%d bytes). Falling back to sequential reading." %
+                          (len(unit_bytes), self.size_bytes), RuntimeWarning)
+            self.read_state = "truncated"
+
         # Reading channel blocks until the end of the unit
         while self.cursor_position < self.size_bytes:
 
             # Grab channel bytes
             channel_bytes = unit_bytes[self.cursor_position:self.size_bytes]
 
-            # Conduct a check to see if the length of unit bytes matches header info
-            self.read_state = "healthy"  # healthy / truncated / fatal
-
             # Insufficient bytes to derive sensor ID and sampling rate
             if len(channel_bytes) <= 4:
-                warnings.formatwarning = lambda msg, cat, fname, lineno, line=None: f"{cat.__name__}: {msg}\n"
                 warnings.warn("Insufficient bytes to derive sensor ID and sampling rate. Breaking.", RuntimeWarning)
                 self.read_state = "fatal"
                 break
-
-            # Sensor ID and sampling rate is known, but data length is mismatched
-            # Use read state "truncated" to return np.nan's
-            if (len(channel_bytes)+10) != self.size_bytes:
-                self.read_state = "truncated"
 
             # Read channel block
             self._read_channel_block(channel_bytes)
@@ -155,11 +156,9 @@ class OneSecUnit(object):
 
         # Otherwise, read sequentially where possible, then pad with np.nan's
         elif self.read_state == "truncated":
-            warnings.formatwarning = lambda msg, cat, fname, lineno, line=None: f"{cat.__name__}: {msg}\n"
-            warnings.warn("Mismatch in number of bytes between unit header and channel block.\n"
-                          "Starttime %s; Sensor %s; %d/%d bytes. Falling back to sequential reading; padding with np.nan if needed." %
-                          (self.starttime.strftime("%Y-%m-%d %H:%M:%S"), sensor_id, (len(channel_bytes) + 10),
-                           self.size_bytes), RuntimeWarning)
+
+            warnings.warn("Starttime %s; Sensor %s -- Padding with np.nan's." %
+                          (self.starttime.strftime("%Y-%m-%d %H:%M:%S"), sensor_id), RuntimeWarning)
 
             # If even the first absolute sample is incomplete, return all nan's
             if len(channel_bytes) < 8:
