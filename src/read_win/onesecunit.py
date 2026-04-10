@@ -55,7 +55,7 @@ class OneSecUnit(object):
 
             # Insufficient bytes to derive sensor ID and sampling rate
             if len(channel_bytes) <= 4:
-                warnings.warn("Insufficient bytes to derive sensor ID and sampling rate. Breaking.\n", RuntimeWarning)
+                warnings.warn("Insufficient bytes to derive sensor ID and sampling rate. Breaking.", RuntimeWarning)
                 self.read_state = "fatal"
                 break
 
