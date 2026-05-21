@@ -31,7 +31,9 @@ def main():
     parser.add_argument('input_dir',
                         help='input directory containing WIN files ')
     parser.add_argument('output_dir',
-                        help='directory for output miniSEED files.')
+                        help='directory for output miniSEED files')
+    parser.add_argument('channel_table',
+                        help='path to channel table')
     parser.add_argument('network',
                         help='desired SEED network code (2 characters, A-Z)')
     parser.add_argument('station',
@@ -65,9 +67,6 @@ def main():
     # Find directory containing this script
     script_dir = os.path.dirname(__file__)
 
-    # Path to channel table
-    CHANNEL_TABLE_PATH = './channels.tbl'
-
     print('------------------------------------------------------------------')
     print('Beginning conversion process...')
     print('------------------------------------------------------------------')
@@ -91,7 +90,7 @@ def main():
     for file in list_files:
 
         # Read WIN data into Stream object
-        stream = read_win.read_win(file, CHANNEL_TABLE_PATH, network=input_args.network, station=input_args.station, fill_value=input_args.fill_value)
+        stream = read_win.read_win(file, input_args.channel_table, network=input_args.network, station=input_args.station, fill_value=input_args.fill_value)
 
         # Rename location to match SEED convention
         for tr in stream:
