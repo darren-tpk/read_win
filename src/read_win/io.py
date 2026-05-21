@@ -1,5 +1,6 @@
 import os
 import time
+import struct
 import warnings
 import numpy as np
 import pandas as pd
@@ -172,7 +173,7 @@ def _read_single_win_file(file_path, verbose=True):
         total_size += struct.unpack(">I", all_bytes[total_size:total_size + 4])[0]  # First 4 bytes = total unit size in bytes
 
     if total_size != len(all_bytes):
-        warnings.warn(f"Total size of WIN file ({len(all_bytes} bytes) does not match the sum of the sizes of each OneSecUnit.")
+        warnings.warn(f"Total size of WIN file ({len(all_bytes)} bytes) does not match the sum of the sizes of each OneSecUnit.")
 
     # Initialize dictionary to accumulate data across all 1 s units
     all_data = {}
