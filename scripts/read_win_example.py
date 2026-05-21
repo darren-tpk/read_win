@@ -5,7 +5,7 @@ from read_win import read_win
 # Read WIN data from directory
 starttime = UTCDateTime(2026, 3, 5, 5)  # UTC
 endtime = UTCDateTime(2026, 3, 5, 8)  # UTC
-file_directory = "./read_win/sample_data"  # for glob
+file_directory = "./read_win/sample_data/win_data"  # for glob
 file_pattern = "%y%m%d%H"  # UTCDateTime strftime input
 file_interval = "hour"  # "minute", "hour", or "day"
 fill_value = None  # for stream.merge
