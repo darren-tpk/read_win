@@ -61,13 +61,13 @@ or
 
 Then, you can run the script from the command line as:
 
-``python convert_win2mseed.py /path/to/WIN_folder/ /path/to/mseed_folder/ /path/to/channel_table NW STA --fill-value 0 -v ``
+``python convert_win2mseed.py /path/to/WIN_folder/ /path/to/mseed_folder/ /path/to/channel_table --fill-value 0 -v ``
 
-where **NW** and **STA** are the network and station names, respectively. Locations codes (e.g. '01' will be automatically extracted from the channel table. SEED channel codes (e.g. 'HDF') will be obtained from the channel table. 
+SEED network, station, channel and location codes will be obtained from the channel table. 
 
 Note that the script will try to convert EVERY file inside the input folder, regardless of the format. 
 
-The output hourly miniSEED files will be named as: ``NW.STA.01.HDF.yyyy.ddd.hh``
+The output hourly miniSEED files will be named as: ``{net}.{sta}.{loc}.{cha}.yyyy.ddd.hh``
 Note that the output miniSEED files will have physical units (e.g. Pa for infrasound), using the channel table for conversion.
 
 
