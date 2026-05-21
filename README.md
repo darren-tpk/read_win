@@ -1,7 +1,7 @@
 read_win
 ========
 
-A Python-based reader for WIN-format seismic data.
+A Python-based reader for WIN-format seismic and infrasound data.
 
 Overview
 --------
@@ -35,7 +35,7 @@ cd read_win
 pip install -e .
 ```
 
-The package is installed in editable mode, allowing updates via ``git_pull``
+The package is installed in editable mode, allowing updates via ``git pull``
 
 
 Python / Python IDE Usage
@@ -47,7 +47,7 @@ Please refer to ``~/read_win/scripts/read_win_example.py``.
 Conversion to miniSEED format
 -----------
 
-The ``convert_win2mseed.py`` script is provided as convenient utility to convert WIN files into miniSEED format. 
+The ``convert_win2mseed.py`` script is provided as a convenient utility to convert WIN files into miniSEED format. 
 
 Disclaimer: Please note that this script was written for a specific field campaign. While we took extra care to include various options and possibilities, it has not been extensively tested. 
 
