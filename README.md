@@ -67,7 +67,7 @@ where **NW** and **STA** are the network and station names, respectively. Locati
 
 Note that the script will try to convert EVERY file inside the input folder, regardless of the format. 
 
-The output hourly miniSEED files will be named as: ``NW.STA.01.HDF.yyy.ddd.hh``
+The output hourly miniSEED files will be named as: ``NW.STA.01.HDF.yyyy.ddd.hh``
 Note that the output miniSEED files will have physical units (e.g. Pa for infrasound), using the channel table for conversion.
 
 
