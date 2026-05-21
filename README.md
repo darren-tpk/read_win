@@ -38,20 +38,20 @@ pip install -e .
 The package is installed in editable mode, allowing updates via ``git_pull``
 
 
-Usage
+Python / Python IDE Usage
 -----------
 
-See ``~/read_win/scripts/read_win_example.py``. More detailed tutorials to follow.
+Please refer to ``~/read_win/scripts/read_win_example.py``. 
 
 
 Conversion to miniSEED format
 -----------
 
-The ``convert_win2mseed.py`` script is provided as convenience utility to convert WIN files into miniSEED format. 
+The ``convert_win2mseed.py`` script is provided as convenient utility to convert WIN files into miniSEED format. 
 
-Disclaimer: Please note that it has been written for a specific field campaign. While we took extra care to include various options and possibilities, it has not been extensively tested. 
+Disclaimer: Please note that this script was written for a specific field campaign. While we took extra care to include various options and possibilities, it has not been extensively tested. 
 
-To run the script, first ensure you have activated the correct environment:
+To run the script, first ensure that you have activated the correct environment:
 
 ``conda activate my_env``
 
@@ -63,13 +63,12 @@ Then, you can run the script from the command line as:
 
 ``python convert_win2mseed.py /path/to/WIN_folder/ /path/to/mseed_folder/ /path/to/channel_table NW STA --fill-value 0 -v ``
 
-where **NW** and **STA** are the network and station names, respectively. Locations codes (e.g. '01' will be automatically extracted from the channel table. SEED channel codes (e.g. 'HDF') will be automatically determined using the data sampling_rate.
+where **NW** and **STA** are the network and station names, respectively. Locations codes (e.g. '01' will be automatically extracted from the channel table. SEED channel codes (e.g. 'HDF') will be obtained from the channel table. 
 
 Note that the script will try to convert EVERY file inside the input folder, regardless of the format. 
 
 The output hourly miniSEED files will be named as: ``NW.STA.01.HDF.yyyy.ddd.hh``
 Note that the output miniSEED files will have physical units (e.g. Pa for infrasound), using the channel table for conversion.
-
 
 
 References
