@@ -70,7 +70,7 @@ Note that the script will try to convert EVERY file inside the input folder, reg
 The output hourly miniSEED files will be named as: ``{net}.{sta}.{loc}.{cha}.yyyy.ddd.hh``
 Note that the output miniSEED files will have physical units (e.g. Pa for infrasound), using the channel table for conversion.
 
-Please pay particular attention to the timezone. ``read_win`` generally assumes UTC time but many WIN files are recorded in JST. A timezone parameter will be added in the future to facilitate conversion.
+Please pay particular attention to the timezone. ``read_win`` generally assumes UTC time but many WIN files are recorded in JST (i.e. UTC+09:00). A timezone parameter will be added in the future to facilitate conversion.
 
 
 References
