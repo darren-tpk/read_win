@@ -129,7 +129,7 @@ def read_win_paths(file_paths, channel_table_path, utc_offset=0, fill_value=None
     if utc_offset != 0:
         log('-----UTC offset is defined as %+06.2f. Converting streams from UTC%+06.2f to UTC.' % (utc_offset, utc_offset))
         for trace in stream:
-            trace.stats.starttime += (utc_offset * 3600)
+            trace.stats.starttime -= (utc_offset * 3600)
         log('-----Streams converted.')
     else:
         log('-----UTC time zone is assumed. Change utc_offset parameter if this is not desired.')
