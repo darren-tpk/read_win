@@ -11,12 +11,13 @@ from obspy import Stream, Trace, UTCDateTime
 from .onesecunit import OneSecUnit
 from .utils import _safe_merge
 
-def read_win(starttime, endtime, file_directory, file_pattern, file_interval, fill_value, channel_table_path, verbose=True):
+def read_win(starttime, endtime, utc_offset, file_directory, file_pattern, file_interval, fill_value, channel_table_path, verbose=True):
     """
     Read WIN format data from a directory or archive, and trim
 
     :param starttime (:class:`~obspy.core.utcdatetime.UTCDateTime`): Start time of desired data
     :param endtime (:class:`~obspy.core.utcdatetime.UTCDateTime`): End time of desired data
+    :param utc_offset (float): Deviation of WIN-file times from UTC, in hours (e.g., for JST, it is +9 from UTC)
     :param file_directory (str): Path to directory containing WIN data
     :param file_pattern (str): WIN data file pattern (must be a valid strftime input for UTCDateTime)
     :param file_interval (str): WIN data file interval ("minute", "hour", or "day")
@@ -30,20 +31,28 @@ def read_win(starttime, endtime, file_directory, file_pattern, file_interval, fi
     if file_interval not in ["minute", "hour", "day"]:
         raise ValueError("Invalid value for file_interval -- please use 'minute' or 'hour' or 'day'")
 
+    # If UTC offset is defined, adjust starttime and endtime correspondingly
+    if utc_offset != 0:
+        starttime_tz = starttime + (utc_offset * 3600)
+        endtime_tz = endtime + (utc_offset * 3600)
+    else:
+        starttime_tz = starttime
+        endtime_tz = endtime
+
     # Get comprehensive list of WIN file times to be read
     if file_interval == "minute":
         file_interval_time = 60
-        first_file_time = UTCDateTime(starttime.year, starttime.month, starttime.day, starttime.hour, starttime.minute)
-        end_file_time = UTCDateTime(endtime.year, endtime.month, endtime.day, endtime.hour, endtime.minute)
+        first_file_time = UTCDateTime(starttime_tz.year, starttime_tz.month, starttime_tz.day, starttime_tz.hour, starttime_tz.minute)
+        end_file_time = UTCDateTime(endtime_tz.year, endtime_tz.month, endtime_tz.day, endtime_tz.hour, endtime_tz.minute)
     elif file_interval == "hour":
         file_interval_time = 3600
-        first_file_time = UTCDateTime(starttime.year, starttime.month, starttime.day, starttime.hour)
-        end_file_time = UTCDateTime(endtime.year, endtime.month, endtime.day, endtime.hour)
+        first_file_time = UTCDateTime(starttime_tz.year, starttime_tz.month, starttime_tz.day, starttime_tz.hour)
+        end_file_time = UTCDateTime(endtime_tz.year, endtime_tz.month, endtime_tz.day, endtime_tz.hour)
     else:
         file_interval_time = 86400
-        first_file_time = UTCDateTime(starttime.year, starttime.month, starttime.day)
-        end_file_time = UTCDateTime(endtime.year, endtime.month, endtime.day)
-    if end_file_time == endtime:
+        first_file_time = UTCDateTime(starttime_tz.year, starttime_tz.month, starttime_tz.day)
+        end_file_time = UTCDateTime(endtime_tz.year, endtime_tz.month, endtime_tz.day)
+    if end_file_time == endtime_tz:
         file_times = np.arange(first_file_time, end_file_time, file_interval_time)
     else:
         file_times = np.arange(first_file_time, end_file_time + file_interval_time, file_interval_time)
@@ -55,19 +64,20 @@ def read_win(starttime, endtime, file_directory, file_pattern, file_interval, fi
         matching_files = glob(pattern)
         file_paths.extend(matching_files)
 
-    # Read WIN and trim
-    stream = read_win_paths(file_paths, channel_table_path, fill_value=fill_value, verbose=verbose)
+    # Read WIN and trim according to UTC conventions
+    stream = read_win_paths(file_paths, channel_table_path, utc_offset=utc_offset, fill_value=fill_value, verbose=verbose)
     stream = stream.trim(starttime, endtime)
 
     return stream
 
 
-def read_win_paths(file_paths, channel_table_path, fill_value=None, verbose=True):
+def read_win_paths(file_paths, channel_table_path, utc_offset=0, fill_value=None, verbose=True):
     """
     Read WIN filepaths(s) into an ObsPy Stream.
 
     :param file_paths (str or list): Path or list of paths to WIN file(s)
     :param channel_table_path (str): Path to channel table file
+    :param utc_offset (float): Deviation of WIN-file times from UTC, in hours (e.g., for JST, it is +9 from UTC)
     :param fill_value (float, optional): Fill value used in stream.merge() to handle gaps
     :param verbose (bool): If `False`, all print statements will be blocked. Default is `True`.
     :return: :class:`~obspy.core.stream.Stream`
@@ -114,6 +124,15 @@ def read_win_paths(file_paths, channel_table_path, fill_value=None, verbose=True
     log('-----All files successfully read. Merging all streams...')
     _safe_merge(stream, fill_value)
     log('-----Streams merged.')
+
+    # If UTC offset is defined, adjust stream starttimes
+    if utc_offset != 0:
+        log('-----UTC offset is defined as %+06.2f. Converting streams from UTC%+06.2f to UTC.' % (utc_offset, utc_offset))
+        for trace in stream:
+            trace.stats.starttime += (utc_offset * 3600)
+        log('-----Streams converted.')
+    else:
+        log('-----UTC time zone is assumed. Change utc_offset parameter if this is not desired. (e.g., utc_offset=9 for JST / UTC+09:00)')
 
     log('Returning Stream object. Time elapsed: %s seconds.\n' % (time.time() - run_clock))
 
