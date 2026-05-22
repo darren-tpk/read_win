@@ -63,7 +63,7 @@ or
 
 Then, you can run the script from the command line as:
 
-``python convert_win2mseed.py /path/to/WIN_folder/ /path/to/mseed_folder/ /path/to/channel_table --utc_offset 9 --fill-value 0 -v ``
+``python convert_win2mseed.py /path/to/WIN_folder/ /path/to/mseed_folder/ /path/to/channel_table --utc-offset 9 --fill-value 0 -v ``
 
 SEED network, station, channel and location codes will be obtained from the channel table. 
 
