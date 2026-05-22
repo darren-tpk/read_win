@@ -14,7 +14,7 @@ def main():
     parser.add_argument("output_dir", help="Directory for output miniSEED files")
     parser.add_argument("channel_table_path", help="Path to channel table file")
     parser.add_argument("--fill-value", default=0, type=float, dest="fill_value", help="Fill value for gaps in merged data")
-    parser.add_argument("--utc_offset", default=0, type=float, dest="fill_value", help="Deviation of WIN-file times from UTC, in hours (e.g., for JST, it is +9 from UTC)")
+    parser.add_argument("--utc-offset", default=0, type=float, dest="utc_offset", help="Deviation of WIN-file times from UTC, in hours (e.g., for JST, it is +9 from UTC)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Print progress messages")
     input_args = parser.parse_args()
 
