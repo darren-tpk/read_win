@@ -16,6 +16,8 @@ The standard ObsPy ``read`` function does not reliably support WIN data. Known l
 
 Nakagawa and Kato provide an alternative solution using `libwinsystem.so`, which is effective but requires installation of the WIN system. This repository offers a lightweight, Pythonic alternative that avoids that dependency.
 
+Please pay particular attention to the timezone. WIN files are often recorded in JST (i.e. UTC+09:00) but the Stream returned by ``read_win`` will be in UTC. 
+
 
 Installation
 ------------
@@ -69,8 +71,6 @@ Note that the script will try to convert EVERY file inside the input folder, reg
 
 The output miniSEED files will be named as: ``{net}.{sta}.{loc}.{cha}.yyyy.ddd.hh``
 Note that the output miniSEED files will have physical units (e.g. Pa for infrasound), using the channel table for conversion.
-
-Please pay particular attention to the timezone. ``read_win`` generally assumes UTC time but many WIN files are recorded in JST (i.e. UTC+09:00). A timezone parameter will be added in the future to facilitate conversion.
 
 
 References
