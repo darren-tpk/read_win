@@ -47,7 +47,7 @@ Please refer to ``~/read_win/scripts/read_win_example.py``.
 Conversion to miniSEED format
 -----------
 
-The ``convert_win2mseed.py`` script is provided as a convenient utility to convert WIN files into miniSEED format. 
+The ``convert_win2mseed.py`` script is provided as a convenient utility to convert WIN files into miniSEED format. It will work for hourly or daily WIN files, but it is not currently set up for minute files.
 
 Disclaimer: Please note that this script was written for a specific field campaign. While we took extra care to include various options and possibilities, it has not been extensively tested. 
 
@@ -67,7 +67,7 @@ SEED network, station, channel and location codes will be obtained from the chan
 
 Note that the script will try to convert EVERY file inside the input folder, regardless of the format. 
 
-The output hourly miniSEED files will be named as: ``{net}.{sta}.{loc}.{cha}.yyyy.ddd.hh``
+The output miniSEED files will be named as: ``{net}.{sta}.{loc}.{cha}.yyyy.ddd.hh``
 Note that the output miniSEED files will have physical units (e.g. Pa for infrasound), using the channel table for conversion.
 
 Please pay particular attention to the timezone. ``read_win`` generally assumes UTC time but many WIN files are recorded in JST (i.e. UTC+09:00). A timezone parameter will be added in the future to facilitate conversion.
