@@ -127,7 +127,11 @@ def read_win_paths(file_paths, channel_table_path, utc_offset=0, fill_value=None
 
     # If UTC offset is defined, adjust stream starttimes
     if utc_offset != 0:
-        log('-----UTC offset is defined as %+06.2f. Converting streams from UTC%+06.2f to UTC.' % (utc_offset, utc_offset))
+        _sign = "+" if utc_offset >= 0 else "-"
+        _hours = int(abs(utc_offset))
+        _minutes = int(round((abs(utc_offset) % 1) * 60))
+        log('-----UTC offset is defined as UTC%s%02d:%02d. Converting streams from UTC%s%02d:%02d to UTC.' % (
+        _sign, _hours, _minutes, _sign, _hours, _minutes))
         for trace in stream:
             trace.stats.starttime -= (utc_offset * 3600)
         log('-----Streams converted.')
