@@ -132,9 +132,9 @@ def read_win_paths(file_paths, channel_table_path, utc_offset=0, fill_value=None
             trace.stats.starttime += (utc_offset * 3600)
         log('-----Streams converted.')
     else:
-        log('-----UTC time zone is assumed. Change utc_offset parameter if this is not desired. (e.g., utc_offset=9 for JST / UTC+09:00)')
+        log('-----UTC time zone is assumed. Change utc_offset parameter if this is not desired.')
 
-    log('Returning Stream object. Time elapsed: %s seconds.\n' % (time.time() - run_clock))
+    log('Returning Stream object. Time elapsed: %.2f seconds.\n' % (time.time() - run_clock))
 
     return stream
 
