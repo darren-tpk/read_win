@@ -16,7 +16,7 @@ The standard ObsPy ``read`` function does not reliably support WIN data. Known l
 
 Nakagawa and Kato provide an alternative solution using `libwinsystem.so`, which is effective but requires installation of the WIN system. This repository offers a lightweight, Pythonic alternative that avoids that dependency.
 
-Please pay particular attention to the timezone. WIN files are often recorded in JST (i.e. UTC+09:00) but the Stream returned by ``read_win`` will be in UTC. 
+Please pay particular attention to the timezone. WIN files are often recorded in JST (i.e. UTC+09:00) but the ``Stream`` returned by ``read_win`` will be in UTC. 
 
 
 Installation
