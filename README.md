@@ -55,15 +55,21 @@ Disclaimer: Please note that this script was written for a specific field campai
 
 To run the script, first ensure that you have activated the correct environment:
 
-``conda activate my_env``
+```
+conda activate my_env
+```
 
 or
 
-``source my_env/bin/activate``
+```
+source my_env/bin/activate
+```
 
 Then, you can run the script from the command line as:
 
-``python convert_win2mseed.py /path/to/WIN_folder/ /path/to/mseed_folder/ /path/to/channel_table --utc-offset 9 --fill-value 0 -v ``
+```
+python convert_win2mseed.py /path/to/WIN_folder/ /path/to/mseed_folder/ /path/to/channel_table --utc-offset 9 --fill-value 0 -v
+```
 
 SEED network, station, channel and location codes will be obtained from the channel table. 
 
