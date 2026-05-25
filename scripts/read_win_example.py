@@ -5,6 +5,7 @@ from read_win import read_win
 # Read WIN data from directory
 starttime = UTCDateTime(2026, 3, 5, 5)  # UTC
 endtime = UTCDateTime(2026, 3, 5, 8)  # UTC
+utc_offset = 0  # Deviation of WIN file time convention from UTC (e.g., for JST, it is +9 from UTC)
 file_directory = "./read_win/sample_data/win_data"  # for glob
 file_pattern = "%y%m%d%H"  # UTCDateTime strftime input
 file_interval = "hour"  # "minute", "hour", or "day"
@@ -14,6 +15,7 @@ verbose = True
 
 stream = read_win(starttime,
                   endtime,
+                  utc_offset,
                   file_directory,
                   file_pattern,
                   file_interval,
@@ -27,6 +29,7 @@ endtime = UTCDateTime(2026, 4, 2, 3)  # UTC
 
 stream_bad = read_win(starttime,
                       endtime,
+                      utc_offset,
                       file_directory,
                       file_pattern,
                       file_interval,
