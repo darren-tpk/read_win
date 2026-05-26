@@ -104,37 +104,40 @@ def read_win_paths(file_paths, channel_table_path, utc_offset=0, fill_value=None
 
     # Load each file in the list one by one
     for file_path in file_paths:
-        assembled_data = _read_single_win_file(file_path, verbose)
+        assembled_data = _read_single_win_file(file_path, fill_value, verbose)
         for sensor_id, sensor_data in assembled_data.items():
             row = channel_table[channel_table["location"] == sensor_id].iloc[0]
             network, station = row["station"].split(".")
-            stats = Stats({
-                "network": network,
-                "station": station,
-                "channel": row["channel"],  # adjust if column name differs
-                "location": sensor_id,
-                "sampling_rate": sensor_data["sampling_rate"],
-                "starttime": sensor_data["starttime"],
-                "npts": len(sensor_data["data"]),
-            })
-            trace = Trace(data=sensor_data["data"] * row["amplitude_correction"], header=stats)
-            stream.append(trace)
+            for segment in sensor_data["segments"]:
+                stats = Stats({
+                    "network": network,
+                    "station": station,
+                    "channel": row["channel"],
+                    "location": sensor_id,
+                    "sampling_rate": sensor_data["sampling_rate"],
+                    "starttime": segment["starttime"],
+                    "npts": len(segment["data"]),
+                })
+                trace = Trace(data=segment["data"] * row["amplitude_correction"], header=stats)
+                stream.append(trace)
+    log('-----All files successfully read.')
 
-    # Could also merge only once here... Seems slightly faster
-    log('-----All files successfully read. Merging all streams...')
-    _safe_merge(stream, fill_value)
-    log('-----Streams merged.')
+    # Merge traces if fill_value is defined
+    if fill_value is not None:
+        log(f"-----Merging traces (fill_value={fill_value})")
+        _safe_merge(stream, fill_value)
+        log(f"-----Traces merged.")
 
     # If UTC offset is defined, adjust stream starttimes
     if utc_offset != 0:
         _sign = "+" if utc_offset >= 0 else "-"
         _hours = int(abs(utc_offset))
         _minutes = int(round((abs(utc_offset) % 1) * 60))
-        log('-----UTC offset is defined as UTC%s%02d:%02d. Converting streams from UTC%s%02d:%02d to UTC.' % (
+        log('-----UTC offset is defined as UTC%s%02d:%02d. Converting traces from UTC%s%02d:%02d to UTC.' % (
         _sign, _hours, _minutes, _sign, _hours, _minutes))
         for trace in stream:
             trace.stats.starttime -= (utc_offset * 3600)
-        log('-----Streams converted.')
+        log('-----Traces converted.')
     else:
         log('-----UTC time zone is assumed. Change utc_offset parameter if this is not desired.')
 
@@ -171,11 +174,13 @@ def read_channel_table(channel_table_path):
     return channel_table
 
 
-def _read_single_win_file(file_path, verbose=True):
+def _read_single_win_file(file_path, fill_value=None, verbose=True):
     """
     Read a single WIN file into an ObsPy Stream object (not merged or trimmed)
 
     :param file_path (str): Path to WIN file
+    :param fill_value (float, optional): If None (default), traces with data gaps are returned as separate segments in the Stream.
+        If a float is provided, gaps are filled with that value and each channel is returned as a single contiguous trace.
     :param verbose (bool): If `False`, all print statements will be blocked. Default is `True`.
     :return: :class:`~obspy.core.stream.Stream`
     """
@@ -260,6 +265,17 @@ def _read_single_win_file(file_path, verbose=True):
             # Write data
             master_data[start_index:end_index] = b["data"]
 
-        assembled_data[sensor_id] = {"starttime": master_starttime, "sampling_rate": expected_sampling_rate, "data": master_data}
+        # If fill_value is defined, fill gaps. Otherwise, construct split data segments
+        if fill_value is not None:
+            master_data = np.where(np.isnan(master_data), fill_value, master_data)
+            segments = [{"starttime": master_starttime, "data": master_data}]
+        else:
+            padded = np.concatenate(([False], ~np.isnan(master_data), [False]))
+            diff = np.diff(padded.astype(int))
+            starts = np.where(diff == 1)[0]
+            ends = np.where(diff == -1)[0]
+            segments = [{"starttime": master_starttime + start / expected_sampling_rate,
+                         "data": master_data[start:end]} for start, end in zip(starts, ends)]
+        assembled_data[sensor_id] = {"sampling_rate": expected_sampling_rate, "segments": segments}
 
     return assembled_data

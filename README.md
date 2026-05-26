@@ -1,14 +1,10 @@
-read_win
-========
-
+# read_win
 A Python-based reader for WIN-format seismic and infrasound data.
 
-Overview
---------
+## Overview
+`read_win` provides a Python-native approach for reading WIN-format data, designed for users who cannot rely on system-level WIN libraries.
 
-``read_win`` provides a Python-native approach for reading WIN-format data, designed for users who cannot rely on system-level WIN libraries.
-
-The standard ObsPy ``read`` function does not reliably support WIN data. Known limitations (reported by S. Nakagawa and A. Kato, see references) include:
+The standard ObsPy `read` function does not reliably support WIN data. Known limitations (reported by S. Nakagawa and A. Kato, see references) include:
 
 1. Incorrect handling of 0.5- and 3-byte encoded data
 2. Inability to properly handle missing data and variable sampling rates
@@ -16,13 +12,10 @@ The standard ObsPy ``read`` function does not reliably support WIN data. Known l
 
 Nakagawa and Kato provide an alternative solution using `libwinsystem.so`, which is effective but requires installation of the WIN system. This repository offers a lightweight, Pythonic alternative that avoids that dependency.
 
-Please pay particular attention to the timezone. WIN files are often recorded in JST (i.e. UTC+09:00) but the ``Stream`` returned by ``read_win`` will be in UTC. 
+Please pay particular attention to the timezone. WIN files are often recorded in JST (i.e. UTC+09:00) but the `Stream` returned by `read_win` will be in UTC.
 
-
-Installation
-------------
-
-It is recommended to install ``read_win`` within a conda environment.
+## Installation
+It is recommended to install `read_win` within a conda environment.
 
 Create a new environment:
 ```
@@ -37,21 +30,17 @@ cd read_win
 pip install -e .
 ```
 
-The package is installed in editable mode, allowing updates via ``git pull``
+The package is installed in editable mode, allowing updates via `git pull`.
 
 
-Python / Python IDE Usage
------------
-
-Please refer to ``~/read_win/scripts/read_win_example.py``. 
+## Python / Python IDE Usage
+Please refer to `~/read_win/scripts/read_win_example.py`.
 
 
-Conversion to miniSEED format
------------
+## Conversion to miniSEED
+The `convert_win2mseed.py` script is provided as a convenient utility to convert WIN files into miniSEED format. It will work for hourly or daily WIN files, but is not currently set up for minute files.
 
-The ``convert_win2mseed.py`` script is provided as a convenient utility to convert WIN files into miniSEED format. It will work for hourly or daily WIN files, but it is not currently set up for minute files.
-
-Disclaimer: Please note that this script was written for a specific field campaign. While we took extra care to include various options and possibilities, it has not been extensively tested. 
+Disclaimer: Please note that this script was written for a specific field campaign. While we took extra care to include various options and possibilities, it has not been extensively tested.
 
 To run the script, first ensure that you have activated the correct environment:
 
@@ -71,31 +60,31 @@ Then, you can run the script from the command line as:
 python convert_win2mseed.py /path/to/WIN_folder/ /path/to/mseed_folder/ /path/to/channel_table --utc-offset 9 --fill-value 0 -v
 ```
 
-SEED network, station, channel and location codes will be obtained from the channel table. 
+SEED network, station, channel and location codes will be obtained from the channel table.
 
-Note that the script will try to convert EVERY file inside the input folder, regardless of the format. 
+Note that the script will try to convert every file inside the input folder, regardless of format.
 
-The output miniSEED files will be named as: ``{net}.{sta}.{loc}.{cha}.yyyy.ddd.hh``
+The output miniSEED files will be named as: `{net}.{sta}.{loc}.{cha}.yyyy.ddd.hh`
+
 Note that the output miniSEED files will have physical units (e.g. Pa for infrasound), using the channel table for conversion.
 
 
-References
-----------
-
-Nakagawa, S. and Kato, A. — Report on ObsPy WIN-format issues:<br>
-https://www.eri.u-tokyo.ac.jp/GIHOU/archive/26_031-036.pdf<br>
+## References
+Nakagawa, S. and Kato, A. — Report on ObsPy WIN-format issues:  
+https://www.eri.u-tokyo.ac.jp/GIHOU/archive/26_031-036.pdf  
 https://www.eri.u-tokyo.ac.jp/people/nakagawa/win/
 
-Maeda, Y. — WIN format documentation:<br>
-https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/include/win/data_format.html<br>
-https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/win_data/index.html<br>
+Maeda, Y. — WIN format documentation:  
+https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/include/win/data_format.html  
+https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/win_data/index.html  
 https://www.seis.nagoya-u.ac.jp/~maeda/ymaeda_opentools_doc/win_data/wintosac.html
 
 Ikeda, W. and Ozaki, T. — Earlier Python conversion efforts (shared via Ichihara, M.)
 
-Authors and Contributors
-------------------------
-
-Darren Tan<br>
-Gilles Seropian
-
+## Authors and Contributors
+Darren Tan — *current implementation*  
+Gilles Seropian — *current implementation*  
+Mie Ichihara — *supervision & discussions*  
+Ayuta Tsuge — *discussions & testing*  
+Wataru Ikeda — *earlier Python efforts*  
+Tomonori Ozaki — *earlier Python efforts*
