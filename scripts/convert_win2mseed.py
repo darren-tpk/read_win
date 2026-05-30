@@ -4,8 +4,13 @@ import argparse
 from pathlib import Path
 from read_win import read_win_paths
 
+# This script converts a list of WIN files into MSEED (one MSEED per channel).
+# Usage:
+# python convert_win2mseed.py /path/to/WIN_folder/ /path/to/mseed_folder/ /path/to/channel_table (--utc-offset 9 --fill-value 0 -v )
 
 def main():
+
+    # Parse arguments
     parser = argparse.ArgumentParser(
         description="Convert WIN files in a directory to miniSEED files.",
         allow_abbrev=False,
@@ -18,6 +23,7 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true", help="Print progress messages")
     input_args = parser.parse_args()
 
+    # Check all input paths exist
     if not os.path.isdir(input_args.input_dir):
         raise NotADirectoryError(f"Input directory '{input_args.input_dir}' does not exist.")
 
@@ -30,6 +36,7 @@ def main():
     list_files = glob.glob(os.path.join(input_args.input_dir, "*"))
     list_files.sort()
 
+    # Make sure there are files to convert
     if len(list_files) == 0:
         raise FileNotFoundError("No WIN files found.")
 
@@ -38,6 +45,7 @@ def main():
     print("------------------------------------------------------------------")
     print(f"Found {len(list_files)} WIN file(s) to be converted.\n")
 
+    # Loop through all files and convert them to a Stream one by one, then save each Trace in the Stream to MSEED
     for file_path in list_files:
         if input_args.verbose:
             print(f"Converting {file_path}")
@@ -50,8 +58,9 @@ def main():
             verbose=input_args.verbose,
         )
 
+        # Loop through all Traces in the Stream and save to MSEED
         for trace in stream:
-            trace.stats.location = str(trace.stats.location)[-2:]
+            trace.stats.location = str(trace.stats.location)[-2:] # MSEED only accepts location names with 2 characters max
 
             mseed_name = (
                 f"{trace.stats.network}."
