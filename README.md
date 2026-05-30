@@ -37,6 +37,18 @@ The package is installed in editable mode, allowing updates via `git pull`.
 Please refer to `~/read_win/scripts/read_win_example.py`.
 
 
+## Merging WIN files
+A simple script `merge_win.py` is provided to quickly merge WIN files into a single one, using the command line.
+
+Once in the correct environment, run:
+
+```
+python merge_win.py file1 file2 file3 /path/to/output/file (-v)
+```
+
+Note that wildcard is supported for input files (e.g. `path/to/files/*`).
+
+
 ## Conversion to miniSEED
 The `convert_win2mseed.py` script is provided as a convenient utility to convert WIN files into miniSEED format. It will work for hourly or daily WIN files, but is not currently set up for minute files.
 
